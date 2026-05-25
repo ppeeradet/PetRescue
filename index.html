@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🐾 Word Rescue Mission — ภารกิจกู้ภัยคำศัพท์</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;500;700;900&family=Comfortaa:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#f59e0b;--gold2:#fcd34d;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Kanit',sans-serif;background:#f0f9ff;}
+
+/* ── SCREENS ── */
+.sc{position:fixed;inset:0;display:none;flex-direction:column;overflow:hidden;}
+.sc.on{display:flex;}
+
+/* ── WELCOME ── */
+#sw{background:linear-gradient(160deg,#e0f2fe 0%,#bae6fd 50%,#93c5fd 100%);align-items:center;justify-content:center;}
+.logo-wrap{text-align:center;margin-bottom:16px;}
+.logo-title{font-family:'Comfortaa',cursive;font-size:clamp(2rem,8vw,3.5rem);color:#1e40af;text-shadow:3px 3px 0 #fff,6px 6px 0 rgba(30,64,175,.2);line-height:1.1;animation:bounce 2.5s ease-in-out infinite;}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.logo-sub{color:#2563eb;font-size:clamp(.85rem,2.5vw,1.05rem);font-weight:500;margin-top:6px;}
+.pet-parade{font-size:2rem;letter-spacing:4px;margin:10px 0;animation:parade 3s linear infinite;}
+@keyframes parade{0%,100%{transform:scaleX(1)}50%{transform:scaleX(-1)}}
+.wcard{background:rgba(255,255,255,.9);border:2px solid rgba(37,99,235,.2);border-radius:20px;padding:24px 28px;width:min(380px,92vw);backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(37,99,235,.15);}
+.wcard label{color:#1e40af;font-size:.9rem;font-weight:700;display:block;margin-bottom:8px;}
+.wcard input{width:100%;padding:13px 15px;background:#f0f9ff;border:2.5px solid rgba(37,99,235,.3);border-radius:12px;color:#1e40af;font-size:1.1rem;font-family:'Kanit',sans-serif;outline:none;margin-bottom:14px;transition:border-color .2s;}
+.wcard input:focus{border-color:#2563eb;}
+.btn-main{display:block;width:100%;padding:15px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:14px;color:#fff;font-size:1.1rem;font-weight:700;font-family:'Kanit',sans-serif;cursor:pointer;box-shadow:0 5px 0 #1e3a8a,0 8px 20px rgba(37,99,235,.3);transition:all .1s;margin-bottom:10px;letter-spacing:.5px;}
+.btn-main:active{transform:translateY(3px);box-shadow:0 2px 0 #1e3a8a;}
+.btn-sec{display:block;width:100%;padding:12px;background:rgba(37,99,235,.08);border:2px solid rgba(37,99,235,.25);border-radius:14px;color:#2563eb;font-size:1rem;font-family:'Kanit',sans-serif;cursor:pointer;transition:all .15s;margin-bottom:8px;}
+.btn-sec:active{background:rgba(37,99,235,.15);}
+
+/* ── MAP ── */
+#sm{background:linear-gradient(180deg,#f0f9ff 0%,#e0f2fe 100%);}
+.mhdr{background:rgba(255,255,255,.85);backdrop-filter:blur(10px);padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid rgba(37,99,235,.1);}
+.mhdr-title{flex:1;color:#1e40af;font-weight:900;font-size:1.1rem;text-align:center;}
+.mhdr-score{color:#2563eb;font-size:.82rem;font-weight:700;background:#dbeafe;padding:4px 10px;border-radius:20px;}
+.map-list{flex:1;overflow-y:auto;padding:16px 12px;display:flex;flex-direction:column;gap:12px;}
+.lv-card{background:#fff;border:2.5px solid transparent;border-radius:18px;padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .2s;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.lv-card.unlocked{border-color:var(--lc);}
+.lv-card.done{border-color:var(--lc);background:var(--lb);}
+.lv-card.locked{opacity:.45;cursor:not-allowed;filter:grayscale(1);}
+.lv-card:not(.locked):active{transform:scale(.97);}
+.lv-icon-wrap{font-size:2.2rem;width:56px;height:56px;background:var(--lb,#f0f9ff);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.lv-info{flex:1;}
+.lv-name{font-size:.95rem;font-weight:900;color:#1e293b;margin-bottom:2px;}
+.lv-sub{font-size:.75rem;color:#64748b;font-style:italic;}
+.lv-stars{font-size:.85rem;margin-top:3px;}
+.lv-badge{padding:4px 10px;border-radius:20px;font-size:.72rem;font-weight:700;color:var(--lc);background:var(--lb);border:1.5px solid var(--lc);}
+.pet-collect{font-size:1.3rem;letter-spacing:2px;}
+
+/* ── GAME SCREEN ── */
+#sg{background:var(--gbg,#f0fdf4);}
+.ghdr{background:rgba(255,255,255,.9);backdrop-filter:blur(8px);padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid rgba(0,0,0,.06);flex-shrink:0;}
+.ghdr-ch{color:var(--gc,#22c55e);font-weight:900;font-size:.88rem;flex:1;}
+.ghdr-score{color:var(--gc,#22c55e);font-size:1rem;font-weight:900;text-align:center;}
+.ghdr-wrong{display:flex;gap:3px;align-items:center;}
+.wrong-dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--gc,#22c55e);transition:all .2s;}
+.wrong-dot.used{background:var(--gc,#22c55e);}
+
+/* ── RESCUE AREA ── */
+.rescue-area{flex-shrink:0;height:180px;position:relative;display:flex;justify-content:center;align-items:flex-start;overflow:hidden;}
+.rope{position:absolute;top:0;left:50%;width:7px;background:linear-gradient(to bottom,#a16207,#78350f);transform:translateX(-50%);border-radius:0 0 3px 3px;transition:height .4s ease;z-index:1;}
+.cage-wrap{position:absolute;left:50%;transform:translateX(-50%);transition:top .5s cubic-bezier(.34,1.56,.64,1);z-index:2;}
+.cage{width:88px;height:84px;background:rgba(255,255,255,.88);border:4px solid #475569;border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:inset 0 0 12px rgba(0,0,0,.08);}
+.cage::before{content:'';position:absolute;top:0;left:16px;width:3px;height:100%;background:rgba(71,85,105,.35);}
+.cage::after{content:'';position:absolute;top:0;left:48px;width:3px;height:100%;background:rgba(71,85,105,.35);}
+.cage-bar-r{position:absolute;top:0;left:64px;width:3px;height:100%;background:rgba(71,85,105,.35);}
+.cage-door{position:absolute;inset:0;border:3px solid #475569;border-radius:9px;clip-path:inset(0 50% 0 0);transition:clip-path .6s ease;}
+.cage-door.open{clip-path:inset(0 0 0 100%);}
+.cage-pet{font-size:2.6rem;z-index:1;transition:transform .3s;}
+.cage-pet.shake{animation:shake .4s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.slime-pit{position:absolute;bottom:0;left:-10px;right:-10px;height:55px;border-top-left-radius:55%;border-top-right-radius:55%;z-index:3;transition:background .3s;display:flex;align-items:center;justify-content:center;padding-top:4px;overflow:hidden;}
+.slime-bubble{position:absolute;border-radius:50%;background:rgba(255,255,255,.3);animation:bubble 2s ease-in-out infinite;}
+@keyframes bubble{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.3);opacity:.7}}
+.slime-emoji{font-size:1.4rem;z-index:1;}
+
+/* ── WORD DISPLAY ── */
+.word-area{padding:10px 16px 6px;flex-shrink:0;text-align:center;}
+.word-slots{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:6px;}
+.lslot{width:36px;height:46px;border-bottom:4px solid var(--gc,#22c55e);display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;}
+.lslot span{font-size:1.5rem;font-weight:900;color:#1e293b;text-transform:uppercase;}
+.lslot.space{border-bottom:none;width:16px;}
+.hint-box{background:rgba(255,255,255,.8);border:1.5px dashed var(--gc,#22c55e);border-radius:10px;padding:8px 14px;margin:4px 0;}
+.hint-text{color:#1e293b;font-size:clamp(.8rem,2.5vw,.95rem);font-weight:500;line-height:1.5;}
+.thai-hint{color:#64748b;font-size:.8rem;margin-top:3px;}
+
+/* ── KEYBOARD ── */
+.kb-area{flex:1;min-height:0;padding:6px 8px 10px;display:flex;flex-direction:column;gap:5px;justify-content:center;}
+.kb-row{display:flex;justify-content:center;gap:5px;}
+.kkey{width:clamp(28px,8.5vw,40px);height:clamp(36px,9vw,44px);background:#fff;border:2px solid rgba(0,0,0,.12);border-radius:8px;font-size:clamp(.85rem,2.5vw,1rem);font-weight:700;font-family:'Kanit',sans-serif;cursor:pointer;color:#1e293b;box-shadow:0 3px 0 rgba(0,0,0,.12);transition:all .1s;display:flex;align-items:center;justify-content:center;}
+.kkey:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.12);}
+.kkey.correct{background:var(--gc,#22c55e);border-color:var(--gc,#22c55e);color:#fff;box-shadow:0 3px 0 var(--gd,#15803d);}
+.kkey.wrong{background:#e2e8f0;border-color:#cbd5e1;color:#94a3b8;box-shadow:none;cursor:not-allowed;}
+.kkey:disabled{cursor:not-allowed;}
+
+/* ── OVERLAYS ── */
+.overlay{position:fixed;inset:0;z-index:200;background:rgba(15,23,42,.82);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);}
+.overlay.on{display:flex;}
+.ov-card{background:#fff;border-radius:24px;width:min(380px,92vw);overflow:hidden;animation:popin .35s cubic-bezier(.34,1.56,.64,1);}
+@keyframes popin{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.ov-head{padding:24px 24px 16px;text-align:center;}
+.ov-head.win{background:linear-gradient(135deg,#bbf7d0,#86efac);}
+.ov-head.lose{background:linear-gradient(135deg,#fee2e2,#fca5a5);}
+.ov-emoji{font-size:4rem;display:block;margin-bottom:8px;}
+.ov-title{font-size:1.5rem;font-weight:900;color:#1e293b;}
+.ov-body{padding:16px 24px 24px;}
+.ov-word{font-size:1.8rem;font-weight:900;color:#1e40af;letter-spacing:2px;text-align:center;margin-bottom:4px;}
+.ov-thai{display:inline-block;background:#dbeafe;color:#1e40af;padding:4px 14px;border-radius:20px;font-size:.95rem;font-weight:700;margin-bottom:14px;}
+.ov-hint-box{background:#fffbeb;border:1.5px dashed #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:16px;}
+.ov-hint{font-size:.9rem;color:#92400e;font-weight:500;line-height:1.5;}
+.ov-pet-win{text-align:center;margin-bottom:14px;}
+.ov-pet-emoji{font-size:3.5rem;display:inline-block;animation:petjump .6s ease infinite alternate;}
+@keyframes petjump{from{transform:translateY(0) scale(1)}to{transform:translateY(-10px) scale(1.1)}}
+.ov-pet-name{font-size:.9rem;color:#64748b;margin-top:4px;}
+.ov-score-line{font-size:1rem;color:#64748b;text-align:center;margin-bottom:16px;}
+.ov-score-line span{color:#f59e0b;font-weight:900;font-size:1.2rem;}
+.pt{position:fixed;z-index:999;pointer-events:none;font-size:1.5rem;animation:fly 1.2s ease-out forwards;}
+@keyframes fly{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-120px) scale(.3);opacity:0}}
+
+/* ── COLLECTION ── */
+#scol{background:#f8fafc;}
+.col-hdr{background:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e2e8f0;}
+.col-hdr-t{flex:1;color:#1e40af;font-weight:900;text-align:center;}
+.col-body{flex:1;overflow-y:auto;padding:16px;}
+.col-section{margin-bottom:20px;}
+.col-sec-title{font-size:.82rem;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;padding:0 4px;}
+.col-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.pet-card{background:#fff;border-radius:12px;padding:8px 4px;text-align:center;border:2px solid var(--lc,#e2e8f0);position:relative;}
+.pet-card .pe{font-size:1.8rem;display:block;}
+.pet-card .pw{font-size:.55rem;color:#64748b;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pet-card.legendary{animation:aura 2s ease-in-out infinite;}
+@keyframes aura{0%,100%{box-shadow:0 0 8px var(--lc)}50%{box-shadow:0 0 20px var(--lc)}}
+.pet-empty{font-size:2rem;opacity:.2;filter:grayscale(1);}
+.empty-msg{text-align:center;color:#94a3b8;padding:40px;font-size:.95rem;}
+
+/* ── LEADERBOARD ── */
+#slb{background:#f8fafc;overflow-y:auto;}
+.lb-hdr{background:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:5;}
+.lb-hdr-t{flex:1;color:#1e40af;font-weight:900;text-align:center;}
+.lb-body{padding:16px 14px;max-width:600px;margin:0 auto;}
+.lb-row{display:flex;align-items:center;padding:12px 16px;border-radius:12px;margin-bottom:8px;background:#fff;border:1.5px solid #e2e8f0;}
+.lb-row.me{background:#eff6ff;border-color:#bfdbfe;}
+.lb-rank{color:#f59e0b;font-weight:900;width:38px;font-size:1rem;}
+.lb-name{flex:1;font-size:.92rem;color:#1e293b;font-weight:700;}
+.lb-sc{color:#2563eb;font-weight:900;}
+.lb-dt{color:#94a3b8;font-size:.72rem;margin-left:8px;}
+.lb-empty{color:#94a3b8;text-align:center;padding:40px;}
+
+/* ── SHARED ── */
+.bk{background:rgba(0,0,0,.06);border:1.5px solid rgba(0,0,0,.1);border-radius:10px;color:#475569;font-size:.85rem;font-family:'Kanit',sans-serif;padding:6px 12px;cursor:pointer;}
+.bk:active{background:rgba(0,0,0,.12);}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:rgba(37,99,235,.2);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- WELCOME -->
+<div class="sc on" id="sw">
+  <div class="logo-wrap"><div class="pet-parade">🐶 🐱 🐰 🦜 🐉</div>
+    <div class="logo-title">Word Rescue<br>Mission</div>
+    <div class="logo-sub">🐾 ภารกิจกู้ภัยคำศัพท์ ป.1–6</div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:center;padding:0 16px;flex:1;">
+    <div class="wcard">
+      <label>🧑‍🚀 ชื่อนักผจญภัย</label>
+      <input id="inp" type="text" placeholder="พิมพ์ชื่อของเธอ..." autocomplete="off" maxlength="20">
+      <button class="btn-main" onclick="startGame()">🐾 เริ่มภารกิจ!</button>
+      <button class="btn-main" id="btnCon" style="display:none;background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 5px 0 #15803d;" onclick="continueGame()"></button>
+      <button class="btn-sec" onclick="showLB()">🏆 ดู Ranking</button>
+      <button class="btn-sec" onclick="showCollection()">🐾 สัตว์เลี้ยง</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAP -->
+<div class="sc" id="sm">
+  <div class="mhdr">
+    <button class="bk" onclick="switchPlayer()">🔄</button>
+    <div class="mhdr-title">🗺️ แผนที่การผจญภัย</div>
+    <div class="mhdr-score" id="mpScore">⭐ 0</div>
+  </div>
+  <div class="map-list" id="mapList"></div>
+</div>
+
+<!-- GAME -->
+<div class="sc" id="sg">
+  <div class="ghdr">
+    <div>
+      <div class="ghdr-ch" id="gChName"></div>
+      <div id="gWrongDots" class="ghdr-wrong"></div>
+    </div>
+    <div style="text-align:center;">
+      <div class="ghdr-score">⭐ <span id="gScoreTot">0</span></div>
+      <div style="font-size:.7rem;color:#64748b;">ด่านนี้: <span id="gScoreCh">0</span></div>
+    </div>
+    <button class="bk" onclick="show('sm')">🗺️</button>
+  </div>
+
+  <div class="rescue-area" id="rescueArea">
+    <div class="rope" id="rope" style="height:15px;"></div>
+    <div class="cage-wrap" id="cageWrap" style="top:10px;">
+      <div class="cage" id="cage">
+        <div class="cage-bar-r"></div>
+        <div class="cage-door" id="cageDoor"></div>
+        <div class="cage-pet" id="cagePet">🐱</div>
+      </div>
+    </div>
+    <div class="slime-pit" id="slimePit">
+      <div class="slime-bubble" style="width:18px;height:18px;bottom:8px;left:25%;animation-delay:.3s;"></div>
+      <div class="slime-bubble" style="width:12px;height:12px;bottom:12px;left:55%;animation-delay:.9s;"></div>
+      <div class="slime-bubble" style="width:22px;height:22px;bottom:5px;left:70%;animation-delay:1.5s;"></div>
+      <div class="slime-emoji">🫧</div>
+    </div>
+  </div>
+
+  <div class="word-area">
+    <div class="word-slots" id="wordSlots"></div>
+    <div class="hint-box">
+      <div class="hint-text" id="hintText">...</div>
+      <div class="thai-hint" id="thaiHint"></div>
+    </div>
+  </div>
+
+  <div class="kb-area" id="kbArea">
+    <div class="kb-row" id="kr1"></div>
+    <div class="kb-row" id="kr2"></div>
+    <div class="kb-row" id="kr3"></div>
+  </div>
+</div>
+
+<!-- WIN OVERLAY -->
+<div class="overlay" id="oWin">
+  <div class="ov-card">
+    <div class="ov-head win">
+      <span class="ov-emoji">🎉</span>
+      <div class="ov-title">ช่วยน้องได้แล้ว!</div>
+    </div>
+    <div class="ov-body">
+      <div class="ov-pet-win"><span class="ov-pet-emoji" id="winPet">🐱</span><div class="ov-pet-name" id="winPetName"></div></div>
+      <div class="ov-word" id="winWord"></div>
+      <div style="text-align:center;margin-bottom:12px;"><span class="ov-thai" id="winThai"></span></div>
+      <div class="ov-hint-box"><div class="ov-hint" id="winHint"></div></div>
+      <div class="ov-score-line">ได้ <span id="winScore">0</span> คะแนน! 🌟</div>
+      <button class="btn-main" onclick="nextWord()">▶ คำต่อไป</button>
+      <button class="btn-sec" onclick="show('sm')">🗺️ กลับแผนที่</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOSE OVERLAY -->
+<div class="overlay" id="oLose">
+  <div class="ov-card">
+    <div class="ov-head lose">
+      <span class="ov-emoji">😢</span>
+      <div class="ov-title">น้องตกโคลนแล้ว!</div>
+    </div>
+    <div class="ov-body">
+      <div class="ov-word" id="loseWord"></div>
+      <div style="text-align:center;margin-bottom:12px;"><span class="ov-thai" id="loseThai"></span></div>
+      <div class="ov-hint-box">
+        <div style="font-size:.8rem;color:#92400e;font-weight:700;margin-bottom:4px;">💡 คำตอบถูกต้อง</div>
+        <div class="ov-hint" id="loseHint"></div>
+      </div>
+      <div class="ov-score-line" style="color:#ef4444;">เสียโอกาส ไม่ได้น้อง 🐾</div>
+      <button class="btn-main" style="background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 5px 0 #b91c1c;" onclick="nextWord()">🔄 ลองใหม่!</button>
+      <button class="btn-sec" onclick="show('sm')">🗺️ กลับแผนที่</button>
+    </div>
+  </div>
+</div>
+
+<!-- COLLECTION -->
+<div class="sc" id="scol">
+  <div class="col-hdr">
+    <button class="bk" onclick="closeCollection()">← กลับ</button>
+    <div class="col-hdr-t">🐾 สัตว์เลี้ยงของฉัน</div>
+    <div style="font-size:.82rem;color:#2563eb;font-weight:700;" id="colCount"></div>
+  </div>
+  <div class="col-body" id="colBody"></div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="sc" id="slb">
+  <div class="lb-hdr">
+    <button class="bk" onclick="closeCollection()">← กลับ</button>
+    <div class="lb-hdr-t">🏆 Ranking</div>
+  </div>
+  <div class="lb-body" id="lbBody"></div>
+</div>
+
+<!-- FEEDBACK -->
+<div id="fb" style="position:fixed;inset:0;z-index:300;pointer-events:none;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  VOCABULARY
+// ══════════════════════════════════════════════
+const VOCAB={
+1:[
+{w:'ANIMAL',t:'สัตว์',h:'The lion is a wild ______.'},
+{w:'SCHOOL',t:'โรงเรียน',h:'We go to ______ from Monday to Friday.'},
+{w:'WATER',t:'น้ำ',h:'I am thirsty. I want to drink some ______.'},
+{w:'FAMILY',t:'ครอบครัว',h:'There are four people in my ______.'},
+{w:'COLOR',t:'สี',h:'Red is my favorite ______.'},
+{w:'APPLE',t:'แอปเปิ้ล',h:'An ______ a day keeps the doctor away.'},
+{w:'HAPPY',t:'มีความสุข',h:'She is smiling because she is ______.'},
+{w:'SLEEP',t:'นอนหลับ',h:'I go to ______ at 9 PM every night.'},
+{w:'HOUSE',t:'บ้าน',h:'We live in a big ______ with a garden.'},
+{w:'WRITE',t:'เขียน',h:'Please ______ your name on the paper.'},
+{w:'EIGHT',t:'แปด',h:'The spider has ______ legs.'},
+{w:'BROTHER',t:'พี่ชาย/น้องชาย',h:'My little ______ likes toy cars.'},
+{w:'SISTER',t:'พี่สาว/น้องสาว',h:'She is my older ______ and we play together.'},
+{w:'RIGHT',t:'ขวา/ถูกต้อง',h:'Turn ______ at the corner to go to the park.'},
+{w:'SMILE',t:'รอยยิ้ม',h:'Say cheese and ______ for the camera!'},
+{w:'BEACH',t:'ชายหาด',h:'We played in the sand at the ______.'},
+{w:'BREAD',t:'ขนมปัง',h:'I eat toast made from ______ for breakfast.'},
+{w:'PLEASE',t:'ได้โปรด',h:'Can you help me carry this box, ______?'},
+{w:'AGAIN',t:'อีกครั้ง',h:'Can you say that ______ please?'},
+{w:'EVERY',t:'ทุกๆ',h:'I wake up at six o\'clock ______ morning.'},
+{w:'THINK',t:'คิด',h:'I ______ it is going to rain today.'},
+{w:'WHERE',t:'ที่ไหน',h:'______ did you put my keys?'},
+{w:'NIGHT',t:'กลางคืน',h:'The moon shines brightly at ______.'},
+{w:'THERE',t:'ที่นั่น',h:'Put your school bag over ______ on the desk.'},
+{w:'BASKET',t:'ตะกร้า',h:'Throw the ball into the ______ to score.'},
+{w:'FINGER',t:'นิ้วมือ',h:'The wizard has a magic ring on his ______.'},
+{w:'JUMP',t:'กระโดด',h:'The tiger can ______ very high over the wall.'},
+{w:'MAGIC',t:'เวทมนตร์',h:'He used his wand to do a great ______ trick.'},
+{w:'PAPER',t:'กระดาษ',h:'Write your secret code on a piece of ______.'},
+{w:'TOOTH',t:'ฟัน',h:'The crocodile has a very sharp ______.'},
+{w:'UNDER',t:'ใต้',h:'The treasure chest is hidden ______ the sand.'},
+{w:'WORLD',t:'โลก',h:'We want to travel around the ______ on a ship.'},
+{w:'BOAT',t:'เรือ',h:'The pirates sail their wooden ______ across the sea.'},
+{w:'GOLD',t:'ทองคำ',h:'The captain found a chest full of ______ coins.'},
+{w:'GAME',t:'เกม',h:'We like to play a board ______ together.'},
+{w:'FOOD',t:'อาหาร',h:'The chef cooks delicious ______ for everyone.'},
+{w:'MATH',t:'คณิตศาสตร์',h:'We learn to add numbers in ______ class.'},
+{w:'BOOK',t:'หนังสือ',h:'Open your ______ to page ten and read the story.'},
+{w:'STAR',t:'ดาว',h:'I can see a bright ______ shining in the sky.'},
+{w:'BONE',t:'กระดูก',h:'The hungry dog is chewing on a large ______.'},
+{w:'TIME',t:'เวลา',h:'Look at the clock, what ______ is it now?'},
+{w:'WORD',t:'คำ',h:'How do you spell this ______ in English?'},
+{w:'WALK',t:'เดิน',h:'It is very healthy to ______ in the park.'},
+{w:'TALK',t:'พูดคุย',h:'Please do not ______ loudly in the library.'},
+{w:'BALL',t:'ลูกบอล',h:'We hit the rubber ______ against the wall.'},
+{w:'SING',t:'ร้องเพลง',h:'My sister loves to ______ her favorite songs.'},
+{w:'TEAM',t:'ทีม',h:'We must work together as a ______ to score a goal.'},
+{w:'KIND',t:'ใจดี',h:'It is important to be ______ and help others.'},
+{w:'BRAVE',t:'กล้าหาญ',h:'The ______ knight fought the dangerous dragon.'},
+{w:'SMART',t:'ฉลาด',h:'You must be very ______ to solve this puzzle.'},
+{w:'PROUD',t:'ภูมิใจ',h:'His parents were very ______ when he won the gold medal.'},
+{w:'KITE',t:'ว่าว',h:'The wind is blowing, let\'s go fly a ______ in the park.'},
+{w:'DOLL',t:'ตุ๊กตา',h:'The little girl is brushing her cute ______\'s hair.'},
+{w:'FARM',t:'ฟาร์ม',h:'The farmer grows rice and vegetables on his ______.'},
+{w:'RIDE',t:'ขี่',h:'I like to ______ my bicycle around the village.'},
+],
+2:[
+{w:'FRIEND',t:'เพื่อน',h:'I like playing games with my best ______.'},
+{w:'ANSWER',t:'คำตอบ',h:'Raise your hand if you know the ______.'},
+{w:'DOCTOR',t:'หมอ',h:'When you are sick, you should go see a ______.'},
+{w:'ISLAND',t:'เกาะ',h:'They took a boat to a small ______ in the sea.'},
+{w:'LISTEN',t:'ฟัง',h:'Please ______ to the teacher carefully.'},
+{w:'HUNGRY',t:'หิว',h:'I want to eat pizza because I am ______.'},
+{w:'MONKEY',t:'ลิง',h:'The ______ is climbing the tall tree.'},
+{w:'YELLOW',t:'สีเหลือง',h:'Bananas and lemons are ______.'},
+{w:'WINDOW',t:'หน้าต่าง',h:'It is hot in here, please open the ______.'},
+{w:'FLOWER',t:'ดอกไม้',h:'The bee is flying around the red ______.'},
+{w:'CATCH',t:'จับ',h:'My dog can ______ the ball in his mouth.'},
+{w:'BICYCLE',t:'จักรยาน',h:'He rides his ______ to the park every evening.'},
+{w:'PENCIL',t:'ดินสอ',h:'Please sharpen your ______ before writing.'},
+{w:'ORANGE',t:'ส้ม/สีส้ม',h:'I drank a glass of fresh ______ juice.'},
+{w:'ALWAYS',t:'เสมอ',h:'I ______ brush my teeth in the morning.'},
+{w:'PEOPLE',t:'ผู้คน',h:'There are many ______ waiting for the train.'},
+{w:'CASTLE',t:'ปราสาท',h:'The brave knight rode to the king\'s ______.'},
+{w:'AUTUMN',t:'ฤดูใบไม้ร่วง',h:'The leaves turn brown in ______.'},
+{w:'PIECE',t:'ชิ้น',h:'Would you like another ______ of pizza?'},
+{w:'QUIET',t:'เงียบ',h:'The teacher told students to be ______ during the test.'},
+{w:'LAUGH',t:'หัวเราะ',h:'The funny clown made everyone ______.'},
+{w:'GUESS',t:'เดา',h:'Can you ______ how many candies are in this jar?'},
+{w:'BEHIND',t:'ข้างหลัง',h:'Do not look ______, the monster is following us!'},
+{w:'BRIDGE',t:'สะพาน',h:'We must cross the wooden ______ to reach the castle.'},
+{w:'CLEVER',t:'ฉลาด',h:'Hermione is a very ______ student who reads many books.'},
+{w:'DANGER',t:'อันตราย',h:'The red skull sign means there is ______ ahead.'},
+{w:'FOREST',t:'ป่า',h:'Many wild animals live in the dark ______.'},
+{w:'SECRET',t:'ความลับ',h:'I will tell you a ______, but don\'t tell anyone.'},
+{w:'STRONG',t:'แข็งแรง',h:'The superhero can lift a heavy car because he is ______.'},
+{w:'PIRATE',t:'โจรสลัด',h:'The boy with the straw hat wants to be a great ______.'},
+{w:'FUTURE',t:'อนาคต',h:'The robot traveled from the ______ to help the boy.'},
+{w:'TICKET',t:'ตั๋ว',h:'You must buy a ______ before getting on the train.'},
+{w:'OCEAN',t:'มหาสมุทร',h:'The grand ______ is full of huge waves and sea monsters.'},
+{w:'CHOOSE',t:'เลือก',h:'You can ______ only one gem from the table.'},
+{w:'TRAIN',t:'รถไฟ',h:'The fast ______ travels across the country.'},
+{w:'BATTLE',t:'การต่อสู้',h:'The swordsman won the difficult ______ against the enemy.'},
+{w:'NUMBER',t:'ตัวเลข',h:'The ______ after seven is eight.'},
+{w:'EARTH',t:'โลก',h:'We live on a beautiful blue planet called ______.'},
+{w:'SPACE',t:'อวกาศ',h:'The astronauts travel into ______ in a fast rocket.'},
+{w:'HEALTH',t:'สุขภาพ',h:'Eating fruit and vegetables is good for your ______.'},
+{w:'STREET',t:'ถนน',h:'Our new house is on a very quiet ______.'},
+{w:'AIRPORT',t:'สนามบิน',h:'We waited at the ______ for two hours.'},
+{w:'MORNING',t:'ตอนเช้า',h:'I always drink a glass of milk every ______.'},
+{w:'SPORT',t:'กีฬา',h:'Swimming and football are my favorite types of ______.'},
+{w:'MUSIC',t:'ดนตรี',h:'I like listening to soft ______ before I sleep.'},
+{w:'DANCE',t:'เต้นรำ',h:'They are learning a new ______ for the school show.'},
+{w:'MONEY',t:'เงิน',h:'How much ______ does this book cost?'},
+{w:'MARKET',t:'ตลาด',h:'My mother buys fresh fish at the morning ______.'},
+{w:'POLICE',t:'ตำรวจ',h:'The brave ______ officer caught the dangerous thief.'},
+{w:'HONEST',t:'ซื่อสัตย์',h:'An ______ person always tells the truth.'},
+{w:'POLITE',t:'สุภาพ',h:'It is ______ to say "thank you" when someone helps you.'},
+{w:'SAILOR',t:'กะลาสีเรือ',h:'The brave ______ works on the ship during the storm.'},
+{w:'BATTLE',t:'การต่อสู้',h:'The brave swordsman won the ______ against the enemy.'},
+],
+3:[
+{w:'BECAUSE',t:'เพราะว่า',h:'I was late ______ it rained heavily.'},
+{w:'BEAUTIFUL',t:'สวยงาม',h:'The princess in the story is very ______.'},
+{w:'LIBRARY',t:'ห้องสมุด',h:'We must be quiet when we are in the ______.'},
+{w:'TOMORROW',t:'พรุ่งนี้',h:'I will finish my homework ______.'},
+{w:'CAREFUL',t:'ระมัดระวัง',h:'You must be ______ when crossing the road.'},
+{w:'WEATHER',t:'สภาพอากาศ',h:'The ______ is very cold today, put on a jacket.'},
+{w:'PICTURE',t:'รูปภาพ',h:'He used a pencil to draw a nice ______.'},
+{w:'VILLAGE',t:'หมู่บ้าน',h:'My grandparents live in a quiet ______ in the mountains.'},
+{w:'KITCHEN',t:'ห้องครัว',h:'My mother is cooking dinner in the ______.'},
+{w:'DIFFERENT',t:'แตกต่าง',h:'My bag is blue, but yours is a ______ color.'},
+{w:'EXCITING',t:'น่าตื่นเต้น',h:'Riding a roller coaster is very fun and ______.'},
+{w:'SOMETIMES',t:'บางครั้ง',h:'I ______ eat ice cream after dinner, but not every day.'},
+{w:'UMBRELLA',t:'ร่ม',h:'It is raining, do not forget to take your ______.'},
+{w:'BUILDING',t:'อาคาร',h:'The hospital is the tallest ______ in our town.'},
+{w:'FAVORITE',t:'ชื่นชอบ',h:'Mathematics is my ______ subject at school.'},
+{w:'SWIMMING',t:'ว่ายน้ำ',h:'We like to go ______ in the pool on hot days.'},
+{w:'BELIEVE',t:'เชื่อ',h:'I ______ that you can pass the difficult test.'},
+{w:'ACCIDENT',t:'อุบัติเหตุ',h:'He broke his leg in a bad bicycle ______.'},
+{w:'OPPOSITE',t:'ตรงข้าม',h:'Up is the ______ of down.'},
+{w:'SUDDENLY',t:'ทันใดนั้น',h:'We were walking, and ______ a dog jumped out.'},
+{w:'SURPRISE',t:'เซอร์ไพรส์',h:'We hid behind the sofa for his ______ birthday party.'},
+{w:'ALREADY',t:'เรียบร้อยแล้ว',h:'You do not need to wash the dishes, I have ______ done it.'},
+{w:'ADVENTURE',t:'การผจญภัย',h:'Sailing across the ocean is a great ______.'},
+{w:'CREATURE',t:'สิ่งมีชีวิต',h:'A dragon is a mythical ______ that breathes fire.'},
+{w:'DISCOVER',t:'ค้นพบ',h:'The brave explorer wants to ______ a new island.'},
+{w:'MYSTERY',t:'ความลึกลับ',h:'The detective is trying to solve the ______.'},
+{w:'TREASURE',t:'สมบัติ',h:'X marks the spot where the pirate ______ is buried.'},
+{w:'CAPTAIN',t:'กัปตัน',h:'The ______ of the ship gives orders to the crew.'},
+{w:'COLLECT',t:'สะสม',h:'Players need to ______ different colored gems.'},
+{w:'FACTORY',t:'โรงงาน',h:'They built a large ______ to produce more goods.'},
+{w:'HARBOR',t:'ท่าเรือ',h:'The ship arrived safely at the ______ after a long trip.'},
+{w:'EXPERIMENT',t:'การทดลอง',h:'The students did an ______ in the science lab.'},
+{w:'MEASURE',t:'วัดขนาด',h:'Use a ruler to ______ the size of the table.'},
+{w:'SUBJECT',t:'วิชา',h:'Science is my favorite ______ at school.'},
+{w:'PROJECT',t:'โครงงาน',h:'We must finish the science ______ by tomorrow.'},
+{w:'CLIMATE',t:'ภูมิอากาศ',h:'Global warming is making the Earth\'s ______ hotter.'},
+{w:'ENERGY',t:'พลังงาน',h:'The sun gives us solar ______ which provides light.'},
+{w:'GRAVITY',t:'แรงโน้มถ่วง',h:'Because of ______, an apple falls from the tree.'},
+{w:'TRAFFIC',t:'การจราจร',h:'We were late because there was a lot of ______ on the road.'},
+{w:'TRAVEL',t:'เดินทาง',h:'Many people love to ______ to other countries.'},
+{w:'MESSAGE',t:'ข้อความ',h:'He sent a short text ______ to his friend.'},
+{w:'CAMERA',t:'กล้องถ่ายรูป',h:'Smile and look at the ______ so I can take a picture.'},
+{w:'HOLIDAY',t:'วันหยุด',h:'We are going to the beach for our summer ______.'},
+{w:'NATURE',t:'ธรรมชาติ',h:'Going camping is a great way to enjoy ______.'},
+{w:'CARTOON',t:'การ์ตูน',h:'I watched a funny ______ about a robot cat.'},
+{w:'PUZZLE',t:'ปริศนา',h:'It took three days to finish the jigsaw ______.'},
+{w:'WINNER',t:'ผู้ชนะ',h:'The ______ of the race will get a gold medal.'},
+{w:'RECORD',t:'สถิติ',h:'The very fast runner broke the world ______ today.'},
+{w:'FLIGHT',t:'เที่ยวบิน',h:'Our ______ to Chiang Mai will take about one hour.'},
+{w:'CONCERT',t:'คอนเสิร์ต',h:'The idol group will perform at a live ______ tonight.'},
+{w:'ENEMY',t:'ศัตรู',h:'In this game, you must defeat the boss ______ to win.'},
+],
+4:[
+{w:'RESTAURANT',t:'ร้านอาหาร',h:'We had dinner at an Italian ______ last night.'},
+{w:'VEGETABLE',t:'ผัก',h:'Carrot and cabbage are types of ______.'},
+{w:'SCIENCE',t:'วิทยาศาสตร์',h:'In ______ class, we learned about the solar system.'},
+{w:'DINOSAUR',t:'ไดโนเสาร์',h:'The T-Rex is a famous meat-eating ______.'},
+{w:'LANGUAGE',t:'ภาษา',h:'English is an important ______ to learn.'},
+{w:'DANGEROUS',t:'อันตราย',h:'Do not touch the snake, it can be very ______.'},
+{w:'IMPORTANT',t:'สำคัญ',h:'It is ______ to brush your teeth every day.'},
+{w:'MISTAKE',t:'ข้อผิดพลาด',h:'I used an eraser because I made a ______ in my notebook.'},
+{w:'QUESTION',t:'คำถาม',h:'The teacher asked a difficult ______ in the exam.'},
+{w:'DICTIONARY',t:'พจนานุกรม',h:'If you don\'t know the word, look it up in the ______.'},
+{w:'CHOCOLATE',t:'ช็อกโกแลต',h:'Many children love eating sweet ______.'},
+{w:'MEDICINE',t:'ยา',h:'The doctor gave me some ______ for my cough.'},
+{w:'EXERCISE',t:'ออกกำลังกาย',h:'Running and playing sports are good ways to ______.'},
+{w:'ASTRONAUT',t:'นักบินอวกาศ',h:'An ______ is a person who travels to space in a rocket.'},
+{w:'GEOGRAPHY',t:'ภูมิศาสตร์',h:'In ______ class, we study about maps and countries.'},
+{w:'MOUNTAIN',t:'ภูเขา',h:'Mount Everest is the highest ______ in the world.'},
+{w:'THROUGH',t:'ผ่าน/ทะลุ',h:'The fast train went directly ______ the dark tunnel.'},
+{w:'ENOUGH',t:'เพียงพอ',h:'We have ______ food and water for everyone.'},
+{w:'REMEMBER',t:'จำได้',h:'Please ______ to lock the door when you leave.'},
+{w:'BUSINESS',t:'ธุรกิจ',h:'His uncle owns a large computer ______ in the city.'},
+{w:'PROBABLY',t:'อาจจะ',h:'Take your umbrella. It will ______ rain this afternoon.'},
+{w:'GOVERNMENT',t:'รัฐบาล',h:'The ______ is responsible for building roads and schools.'},
+{w:'SCHEDULE',t:'กำหนดการ',h:'We have a very busy ______ of classes on Monday.'},
+{w:'NEIGHBOR',t:'เพื่อนบ้าน',h:'The friendly family living next door is our ______.'},
+{w:'CHARACTER',t:'ตัวละคร',h:'Harry Potter is my favorite ______ in the storybook.'},
+{w:'CHALLENGE',t:'ความท้าทาย',h:'Climbing the ice mountain is a very difficult ______.'},
+{w:'COURAGE',t:'ความกล้าหาญ',h:'It takes a lot of ______ to fight the dragon.'},
+{w:'INVISIBLE',t:'ล่องหน',h:'The magic cloak makes the boy ______ to his enemies.'},
+{w:'JOURNEY',t:'การเดินทาง',h:'The hobbit started his long ______ to the lonely mountain.'},
+{w:'STRATEGY',t:'กลยุทธ์',h:'In a board game, you need a good ______ to win.'},
+{w:'PASSENGER',t:'ผู้โดยสาร',h:'Every ______ on the flying ship must wear a safety belt.'},
+{w:'PRECIOUS',t:'ล้ำค่า',h:'The dark wizard is looking for the ______ magic stone.'},
+{w:'SCIENTIST',t:'นักวิทยาศาสตร์',h:'The ______ is doing a secret experiment in the laboratory.'},
+{w:'SUBMARINE',t:'เรือดำน้ำ',h:'The yellow ______ dives deep under the sea to find treasure.'},
+{w:'EXCHANGE',t:'แลกเปลี่ยน',h:'I will ______ two sheep for one wheat to build a settlement.'},
+{w:'EVIDENCE',t:'หลักฐาน',h:'The police found a footprint and used it as ______.'},
+{w:'EDUCATION',t:'การศึกษา',h:'Going to a good school gives children a high-quality ______.'},
+{w:'TELEVISION',t:'โทรทัศน์',h:'Sitting too close to the ______ screen is bad for your eyes.'},
+{w:'TOURNAMENT',t:'การแข่งขัน',h:'She practiced hard and won first place in the chess ______.'},
+{w:'CHAMPION',t:'แชมเปี้ยน',h:'The final ______ proudly held the heavy silver trophy.'},
+{w:'CURRENCY',t:'สกุลเงิน',h:'The US Dollar is a very strong global ______.'},
+{w:'ECONOMY',t:'เศรษฐกิจ',h:'When people buy and sell things, it helps the country\'s ______.'},
+{w:'DECISION',t:'การตัดสินใจ',h:'Choosing which board game to play first is a hard ______.'},
+{w:'TRADITION',t:'ประเพณี',h:'Giving red envelopes during Chinese New Year is a very old ______.'},
+{w:'ATTENTION',t:'ความสนใจ',h:'Please pay ______ to the teacher when she is explaining.'},
+{w:'BEHAVIOR',t:'พฤติกรรม',h:'His bad ______ in class made the teacher very upset.'},
+{w:'RESPECT',t:'ความเคารพ',h:'We must always show ______ to our parents.'},
+{w:'CALENDAR',t:'ปฏิทิน',h:'Look at the ______ to see what date it is today.'},
+{w:'INTERNET',t:'อินเทอร์เน็ต',h:'You can find useful information by searching on the ______.'},
+{w:'INSTRUMENT',t:'เครื่องดนตรี',h:'The piano is a beautiful and complex musical ______.'},
+{w:'DISCOVERY',t:'การค้นพบ',h:'Finding the dinosaur skeleton was a great ______ for science.'},
+],
+5:[
+{w:'ENVIRONMENT',t:'สิ่งแวดล้อม',h:'Planting trees is a good way to protect the ______.'},
+{w:'KNOWLEDGE',t:'ความรู้',h:'Reading books gives you a lot of ______.'},
+{w:'TEMPERATURE',t:'อุณหภูมิ',h:'The ______ dropped to 10 degrees in the winter.'},
+{w:'EXPERIENCE',t:'ประสบการณ์',h:'He is a great teacher with 10 years of ______.'},
+{w:'IMAGINATION',t:'จินตนาการ',h:'You need a lot of ______ to write a fantasy story.'},
+{w:'VOCABULARY',t:'คำศัพท์',h:'Playing Hangman is a fun way to improve your ______.'},
+{w:'OPPORTUNITY',t:'โอกาส',h:'Going to study abroad is a great ______ for students.'},
+{w:'COMMUNICATE',t:'สื่อสาร',h:'We use telephones and the internet to ______ with people.'},
+{w:'INDEPENDENT',t:'เป็นอิสระ',h:'Cats are very ______ animals that like to do things alone.'},
+{w:'DEVELOPMENT',t:'การพัฒนา',h:'Playing educational games helps with a child\'s brain ______.'},
+{w:'PARTICIPATE',t:'เข้าร่วม',h:'All students must ______ in the school sports day activities.'},
+{w:'ENCOURAGE',t:'ให้กำลังใจ',h:'Parents should always ______ their children to do their best.'},
+{w:'CONCLUSION',t:'บทสรุป',h:'At the end of the story, the author writes a clear ______.'},
+{w:'DISAPPEAR',t:'หายไป',h:'The magic trick made the rabbit ______ from the hat.'},
+{w:'RESPONSIBLE',t:'มีความรับผิดชอบ',h:'You are ______ for keeping your bedroom clean.'},
+{w:'GUARANTEE',t:'รับประกัน',h:'The shop gives a one-year ______ if the television breaks.'},
+{w:'FASCINATING',t:'น่าหลงใหล',h:'The documentary about the universe was absolutely ______.'},
+{w:'PSYCHOLOGY',t:'จิตวิทยา',h:'She wants to study ______ to understand how the brain works.'},
+{w:'APPRECIATE',t:'ซาบซึ้ง',h:'I really ______ all the help you gave me with my project.'},
+{w:'CONVENIENT',t:'สะดวกสบาย',h:'Taking the subway is very ______ because it avoids traffic.'},
+{w:'ENTHUSIASM',t:'ความกระตือรือร้น',h:'The students showed great ______ when playing the new game.'},
+{w:'MAGNIFICENT',t:'งดงาม/ยิ่งใหญ่',h:'The view of the sunset over the ocean was truly ______.'},
+{w:'COINCIDENCE',t:'ความบังเอิญ',h:'We both bought the exact same card game; what a ______!'},
+{w:'COMPETITION',t:'การแข่งขัน',h:'The young girl won gold in the national mathematics ______.'},
+{w:'EXTRAORDINARY',t:'มหัศจรรย์/พิเศษ',h:'The flying time machine is an ______ invention.'},
+{w:'INVESTIGATE',t:'สืบสวน',h:'The police officer will ______ the crime scene for clues.'},
+{w:'MYSTERIOUS',t:'ลึกลับ',h:'A ______ stranger wearing a black cloak entered the tavern.'},
+{w:'PHENOMENON',t:'ปรากฏการณ์',h:'A total solar eclipse is a very rare natural ______.'},
+{w:'SIGNIFICANT',t:'สำคัญ/มีความหมาย',h:'Finding the missing map was a ______ step in our quest.'},
+{w:'EXPEDITION',t:'การสำรวจ',h:'The crew went on a dangerous ______ to find the lost city.'},
+{w:'CIVILIZATION',t:'อารยธรรม',h:'Players must build a great ______ from ancient times.'},
+{w:'COMPLICATED',t:'ซับซ้อน',h:'The rules of this heavy board game are very ______.'},
+{w:'LABORATORY',t:'ห้องแล็บ',h:'The scientist wears safety glasses when working in the ______.'},
+{w:'HYPOTHESIS',t:'สมมติฐาน',h:'Before testing, we must make a ______ about what will happen.'},
+{w:'THERMOMETER',t:'เทอร์โมมิเตอร์',h:'The doctor uses a ______ to check if the child has a fever.'},
+{w:'TRANSPORTATION',t:'การคมนาคม',h:'The underground subway is a very fast system of public ______.'},
+{w:'INTERNATIONAL',t:'ระดับนานาชาติ',h:'The large airport has many ______ flights going to different countries.'},
+{w:'CHAMPIONSHIP',t:'การชิงแชมป์',h:'The football team is practicing hard for the national ______.'},
+{w:'PERFORMANCE',t:'การแสดง',h:'The idol group gave an amazing live ______ on stage.'},
+{w:'RESPONSIBILITY',t:'ความรับผิดชอบ',h:'Taking good care of a pet dog every day is a very big ______.'},
+{w:'PERSEVERANCE',t:'ความอุตสาหะ',h:'With hard work and ______, you can pass the difficult test.'},
+{w:'ENTREPRENEUR',t:'ผู้ประกอบการ',h:'An ______ is someone who takes risks to start a new company.'},
+{w:'EXAGGERATE',t:'พูดเกินจริง',h:'Do not ______ the story; just tell me exactly what happened.'},
+{w:'APOLOGIZE',t:'ขอโทษ',h:'You should ______ to your friend for breaking his pencil.'},
+{w:'PERSUADE',t:'โน้มน้าว',h:'The salesman tried to ______ my father to buy the expensive car.'},
+{w:'SUSPICIOUS',t:'น่าสงสัย',h:'The police watched the man who was acting in a ______ way.'},
+{w:'ENTHUSIASTIC',t:'กระตือรือร้น',h:'The young students were very ______ about the science camp.'},
+{w:'MISCHIEVOUS',t:'ซุกซน',h:'The ______ little boy hid his sister\'s shoes under the bed.'},
+{w:'NEGOTIATE',t:'เจรจาต่อรอง',h:'You must ______ with other players to trade your resources.'},
+{w:'VOLATILITY',t:'ความผันผวน',h:'The ______ of the gold market makes prices change quickly.'},
+]};
+
+// ══════════════════════════════════════════════
+//  LEVEL CONFIG
+// ══════════════════════════════════════════════
+const LV=[
+{id:1,name:'ทุ่งหญ้าแห่งมิตรภาพ',sub:'Friendship Meadow · ระดับ Very Easy',icon:'🌿',pets:['🐶','🐱'],rarity:'Common',maxW:6,color:'#16a34a',dark:'#14532d',bg:'linear-gradient(160deg,#d1fae5,#f0fdf4)',lbg:'#dcfce7',slime:'#4ade80',slimeTxt:'🟢'},
+{id:2,name:'ป่าวงกตจอมป่วน',sub:'Mischievous Maze · ระดับ Easy',icon:'🌲',pets:['🐰','🐷'],rarity:'Uncommon',maxW:6,color:'#9333ea',dark:'#581c87',bg:'linear-gradient(160deg,#ede9fe,#faf5ff)',lbg:'#f3e8ff',slime:'#c084fc',slimeTxt:'💜'},
+{id:3,name:'หุบเขาเมฆาหรรษา',sub:'Happy Cloud Valley · ระดับ Medium',icon:'☁️',pets:['🦜','🐧'],rarity:'Rare',maxW:5,color:'#2563eb',dark:'#1e3a8a',bg:'linear-gradient(160deg,#dbeafe,#eff6ff)',lbg:'#dbeafe',slime:'#60a5fa',slimeTxt:'💙'},
+{id:4,name:'วิหารลับเจ้าป่า',sub:'Secret Guardian Temple · ระดับ Hard',icon:'🏛️',pets:['🐯','🐻'],rarity:'Epic',maxW:5,color:'#ea580c',dark:'#7c2d12',bg:'linear-gradient(160deg,#ffedd5,#fff7ed)',lbg:'#fed7aa',slime:'#fb923c',slimeTxt:'🔥'},
+{id:5,name:'ดินแดนเทพนิยายแห่งแสง',sub:'Kingdom of Light · ระดับ Very Hard',icon:'✨',pets:['🐉','🦄'],rarity:'Legendary',maxW:4,color:'#d97706',dark:'#78350f',bg:'linear-gradient(160deg,#fef9c3,#fefce8)',lbg:'#fef08a',slime:'#facc15',slimeTxt:'⭐'},
+];
+
+const KB=[['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['Z','X','C','V','B','N','M']];
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+const G={
+  name:'',level:1,word:null,
+  revealed:[],guessed:new Set(),wrong:0,
+  chScore:0,totScore:0,
+  pets:[],levelWins:[0,0,0,0,0],
+  usedWords:{1:[],2:[],3:[],4:[],5:[]},
+  mOn:true
+};
+
+// ══════════════════════════════════════════════
+//  SAVE / LOAD
+// ══════════════════════════════════════════════
+function save(){
+  try{localStorage.setItem('wrm_'+G.name,JSON.stringify({
+    totScore:G.totScore,pets:G.pets,levelWins:G.levelWins,usedWords:G.usedWords
+  }));}catch(_){}
+}
+function load(){
+  try{
+    const d=JSON.parse(localStorage.getItem('wrm_'+G.name)||'null');
+    if(d){G.totScore=d.totScore||0;G.pets=d.pets||[];G.levelWins=d.levelWins||[0,0,0,0,0];G.usedWords=d.usedWords||{1:[],2:[],3:[],4:[],5:[]};}
+  }catch(_){}
+}
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function show(id){
+  document.querySelectorAll('.sc').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+function showLB(){loadLB();show('slb');}
+function showCollection(){renderCollection();show('scol');}
+function closeCollection(){show(G.name?'sm':'sw');}
+
+function startGame(){
+  const n=document.getElementById('inp').value.trim();
+  if(!n)return document.getElementById('inp').focus();
+  if(n!==G.name){
+    G.name=n;G.totScore=0;G.pets=[];G.levelWins=[0,0,0,0,0];G.usedWords={1:[],2:[],3:[],4:[],5:[]};
+  }
+  load();
+  renderMap();show('sm');
+  document.getElementById('btnCon').style.display='none';
+}
+function continueGame(){load();renderMap();show('sm');}
+function switchPlayer(){
+  save();G.name='';
+  document.getElementById('inp').value='';
+  document.getElementById('btnCon').style.display='none';
+  show('sw');
+}
+
+// ══════════════════════════════════════════════
+//  MAP
+// ══════════════════════════════════════════════
+function renderMap(){
+  document.getElementById('mpScore').textContent='⭐ '+G.totScore;
+  const el=document.getElementById('mapList');
+  el.innerHTML='';
+  LV.forEach((lv,i)=>{
+    const unlocked=i===0||G.levelWins[i-1]>=1;
+    const wins=G.levelWins[i];
+    const d=document.createElement('div');
+    d.className='lv-card '+(wins>0?'done':unlocked?'unlocked':'locked');
+    d.style.setProperty('--lc',lv.color);
+    d.style.setProperty('--lb',lv.lbg);
+    const petEmojis=G.pets.filter(p=>p.lv===lv.id).map(p=>p.e).slice(0,5).join('');
+    d.innerHTML=`
+      <div class="lv-icon-wrap" style="--lb:${lv.lbg}">${lv.icon}</div>
+      <div class="lv-info">
+        <div class="lv-name">ด่าน ${lv.id}: ${lv.name}</div>
+        <div class="lv-sub">${lv.sub}</div>
+        ${petEmojis?`<div class="pet-collect">${petEmojis}</div>`:'<div class="lv-stars">'+lv.maxW+' ครั้งผิดได้ · '+lv.rarity+'</div>'}
+      </div>
+      <div><span class="lv-badge" style="--lc:${lv.color};--lb:${lv.lbg};">${wins>0?wins+'🏆':'▶'}</span></div>`;
+    if(!d.classList.contains('locked')) d.onclick=()=>openLevel(i+1);
+    el.appendChild(d);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  GAME START
+// ══════════════════════════════════════════════
+function openLevel(lvId){
+  G.level=lvId;
+  const lv=LV[lvId-1];
+  // Set CSS vars for level theme
+  const sg=document.getElementById('sg');
+  sg.style.setProperty('--gbg',lv.bg.replace('linear-gradient','').replace(/\(.*\)/,'white'));
+  sg.style.background=lv.bg;
+  sg.style.setProperty('--gc',lv.color);
+  sg.style.setProperty('--gd',lv.dark);
+  document.getElementById('slimePit').style.background=lv.slime;
+  document.getElementById('kbArea').style.setProperty('--gc',lv.color);
+  pickWord();
+}
+
+function pickWord(){
+  const lv=LV[G.level-1];
+  const pool=VOCAB[G.level];
+  const used=G.usedWords[G.level]||[];
+  let avail=pool.filter(w=>!used.includes(w.w));
+  if(!avail.length){G.usedWords[G.level]=[];avail=pool;}
+  G.word=avail[Math.floor(Math.random()*avail.length)];
+  G.guessed=new Set();G.wrong=0;G.chScore=0;
+  G.revealed=Array(G.word.w.length).fill(false);
+  
+  document.getElementById('gChName').textContent=lv.icon+' '+lv.name;
+  document.getElementById('gScoreTot').textContent=G.totScore;
+  document.getElementById('gScoreCh').textContent='0';
+  
+  // Pick random pet for this round
+  G.curPet=lv.pets[Math.floor(Math.random()*lv.pets.length)];
+  document.getElementById('cagePet').textContent=G.curPet;
+  document.getElementById('cageDoor').classList.remove('open');
+  
+  updateWrongDots();
+  updateCage();
+  renderWordSlots();
+  renderHint();
+  renderKeyboard();
+  show('sg');
+}
+
+function renderWordSlots(){
+  const el=document.getElementById('wordSlots');
+  el.innerHTML='';
+  G.word.w.split('').forEach((ch,i)=>{
+    const s=document.createElement('div');
+    s.className='lslot';s.id='slot'+i;
+    const sp=document.createElement('span');
+    sp.textContent=G.revealed[i]?ch:'';
+    s.appendChild(sp);el.appendChild(s);
+  });
+}
+
+function renderHint(){
+  document.getElementById('hintText').textContent=G.word.h.replace('______','_'.repeat(G.word.w.length));
+  document.getElementById('thaiHint').textContent='💬 '+G.word.t;
+}
+
+function renderKeyboard(){
+  ['kr1','kr2','kr3'].forEach((id,ri)=>{
+    const row=document.getElementById(id);row.innerHTML='';
+    KB[ri].forEach(lt=>{
+      const b=document.createElement('button');
+      b.className='kkey';b.textContent=lt;b.id='k'+lt;
+      b.onclick=()=>guess(lt);
+      row.appendChild(b);
+    });
+  });
+}
+
+function updateWrongDots(){
+  const lv=LV[G.level-1];
+  const el=document.getElementById('gWrongDots');
+  el.innerHTML='';
+  for(let i=0;i<lv.maxW;i++){
+    const d=document.createElement('div');
+    d.className='wrong-dot'+(i<G.wrong?' used':'');
+    el.appendChild(d);
+  }
+}
+
+function updateCage(){
+  const lv=LV[G.level-1];
+  // Cage moves from top=10 to top=110 (100px range)
+  const step=100/lv.maxW;
+  const y=10+G.wrong*step;
+  document.getElementById('cageWrap').style.top=y+'px';
+  document.getElementById('rope').style.height=y+'px';
+}
+
+// ══════════════════════════════════════════════
+//  GUESS
+// ══════════════════════════════════════════════
+function guess(lt){
+  if(G.guessed.has(lt)) return;
+  G.guessed.add(lt);
+  const btn=document.getElementById('k'+lt);
+  if(btn) btn.disabled=true;
+  
+  const word=G.word.w;
+  const hits=word.split('').filter((ch,i)=>ch===lt&&!G.revealed[i]);
+  
+  if(hits.length>0){
+    // Correct!
+    word.split('').forEach((ch,i)=>{
+      if(ch===lt){
+        G.revealed[i]=true;
+        const sp=document.querySelector('#slot'+i+' span');
+        if(sp){sp.textContent=lt;sp.style.animation='popin .3s ease';setTimeout(()=>sp.style.animation='',350);}
+      }
+    });
+    G.chScore+=10*hits.length;G.totScore+=10*hits.length;
+    document.getElementById('gScoreCh').textContent=G.chScore;
+    document.getElementById('gScoreTot').textContent=G.totScore;
+    if(btn){btn.classList.add('correct');}
+    playSnd('ok');
+    // Check win
+    if(G.revealed.every(r=>r)) setTimeout(winGame,400);
+  } else {
+    // Wrong
+    G.wrong++;
+    updateWrongDots();updateCage();
+    document.getElementById('cagePet').classList.add('shake');
+    setTimeout(()=>document.getElementById('cagePet').classList.remove('shake'),500);
+    if(btn){btn.classList.add('wrong');}
+    playSnd('bad');
+    if(G.wrong>=LV[G.level-1].maxW) setTimeout(loseGame,500);
+  }
+}
+
+function winGame(){
+  // Cage opens, pet escapes
+  document.getElementById('cageDoor').classList.add('open');
+  // Add pet to collection
+  G.levelWins[G.level-1]++;
+  G.pets.push({e:G.curPet,w:G.word.w,lv:G.level});
+  if(!G.usedWords[G.level]) G.usedWords[G.level]=[];
+  G.usedWords[G.level].push(G.word.w);
+  // Win bonus
+  G.chScore+=50;G.totScore+=50;
+  save();saveScore();
+  // UI
+  document.getElementById('winPet').textContent=G.curPet;
+  document.getElementById('winPetName').textContent=LV[G.level-1].rarity+' · '+G.word.t;
+  document.getElementById('winWord').textContent=G.word.w;
+  document.getElementById('winThai').textContent=G.word.t;
+  document.getElementById('winHint').textContent=G.word.h.replace('______',G.word.w);
+  document.getElementById('winScore').textContent=G.chScore;
+  ptcl(['⭐','✨','🌟','🎊'],10);
+  playSnd('win');
+  document.getElementById('oWin').classList.add('on');
+}
+
+function loseGame(){
+  save();
+  document.getElementById('loseWord').textContent=G.word.w;
+  document.getElementById('loseThai').textContent=G.word.t;
+  document.getElementById('loseHint').textContent=G.word.h.replace('______',G.word.w);
+  // Reveal all letters
+  G.word.w.split('').forEach((ch,i)=>{
+    const sp=document.querySelector('#slot'+i+' span');
+    if(sp) sp.textContent=ch;
+  });
+  playSnd('lose');
+  document.getElementById('oLose').classList.add('on');
+}
+
+function nextWord(){
+  document.getElementById('oWin').classList.remove('on');
+  document.getElementById('oLose').classList.remove('on');
+  renderMap();
+  pickWord();
+}
+
+// ══════════════════════════════════════════════
+//  COLLECTION
+// ══════════════════════════════════════════════
+function renderCollection(){
+  const colBody=document.getElementById('colBody');
+  document.getElementById('colCount').textContent=G.pets.length+' ตัว';
+  colBody.innerHTML='';
+  if(!G.pets.length){colBody.innerHTML='<div class="empty-msg">🐾 ยังไม่มีสัตว์เลี้ยง<br><small>ชนะเกมเพื่อช่วยน้องออกจากกรง!</small></div>';return;}
+  LV.forEach(lv=>{
+    const lvPets=G.pets.filter(p=>p.lv===lv.id);
+    if(!lvPets.length) return;
+    const sec=document.createElement('div');sec.className='col-section';
+    sec.innerHTML=`<div class="col-sec-title">${lv.icon} ${lv.name} (${lvPets.length})</div>`;
+    const grid=document.createElement('div');grid.className='col-grid';
+    lvPets.forEach(p=>{
+      const card=document.createElement('div');
+      card.className='pet-card'+(lv.id===5?' legendary':'');
+      card.style.setProperty('--lc',lv.color);
+      card.innerHTML=`<span class="pe">${p.e}</span><div class="pw">${p.w}</div>`;
+      grid.appendChild(card);
+    });
+    sec.appendChild(grid);colBody.appendChild(sec);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  LEADERBOARD
+// ══════════════════════════════════════════════
+async function loadLB(){
+  const el=document.getElementById('lbBody');
+  el.innerHTML='<div class="lb-empty">กำลังโหลด... ⏳</div>';
+  let entries=[];
+  try{const m=JSON.parse(localStorage.getItem('wrm_lb')||'{}');entries=Object.values(m);}catch(_){}
+  if(db){
+    try{
+      const snap=await db.collection('hangman_lb').orderBy('score','desc').limit(20).get();
+      if(!snap.empty){entries=[];snap.forEach(d=>entries.push(d.data()));}
+    }catch(_){}
+  }
+  entries.sort((a,b)=>b.score-a.score);
+  if(!entries.length){el.innerHTML='<div class="lb-empty">🐾 ยังไม่มีข้อมูล Ranking</div>';return;}
+  const medals=['🥇','🥈','🥉'];
+  el.innerHTML=entries.map((e,i)=>`
+    <div class="lb-row${e.name===G.name?' me':''}">
+      <div class="lb-rank">${medals[i]||'#'+(i+1)}</div>
+      <div class="lb-name">${e.name===G.name?'👤 ':''}${e.name}</div>
+      <div class="lb-sc">⭐ ${e.score}</div>
+      <div class="lb-dt">${e.date||''}</div>
+    </div>`).join('');
+}
+
+async function saveScore(){
+  if(!G.name) return;
+  const entry={name:G.name,score:G.totScore,pets:G.pets.length,date:new Date().toLocaleDateString('th-TH'),ts:Date.now()};
+  try{const m=JSON.parse(localStorage.getItem('wrm_lb')||'{}');
+    if(!m[G.name]||m[G.name].score<G.totScore) m[G.name]=entry;
+    localStorage.setItem('wrm_lb',JSON.stringify(m));}catch(_){}
+  if(db){try{const ref=db.collection('hangman_lb').doc(G.name);
+    const snap=await ref.get();
+    if(!snap.exists||snap.data().score<G.totScore) await ref.set(entry);}catch(_){}}
+}
+
+// ══════════════════════════════════════════════
+//  PARTICLES & FX
+// ══════════════════════════════════════════════
+function ptcl(emos,n){
+  for(let i=0;i<n;i++) setTimeout(()=>{
+    const p=document.createElement('div');p.className='pt';
+    p.textContent=emos[Math.floor(Math.random()*emos.length)];
+    p.style.left=Math.random()*80+10+'vw';p.style.top=Math.random()*40+30+'vh';
+    document.body.appendChild(p);setTimeout(()=>p.remove(),1200);
+  },i*120);
+}
+
+// ══════════════════════════════════════════════
+//  SOUND
+// ══════════════════════════════════════════════
+let aCtx=null;
+function getACtx(){if(!aCtx&&G.mOn) aCtx=new(window.AudioContext||window.webkitAudioContext)();return aCtx;}
+function pNote(f,d,g=.08){
+  const ctx=getACtx();if(!ctx) return;
+  try{const o=ctx.createOscillator(),gn=ctx.createGain();
+    o.connect(gn);gn.connect(ctx.destination);
+    o.type='sine';o.frequency.value=f;
+    gn.gain.setValueAtTime(g,ctx.currentTime);
+    gn.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d/1000);
+    o.start();o.stop(ctx.currentTime+d/1000);}catch(_){}
+}
+function playSnd(t){
+  if(!G.mOn) return;
+  if(t==='ok')[523,659,784].forEach((f,i)=>setTimeout(()=>pNote(f,120),i*80));
+  else if(t==='bad')[330,262].forEach((f,i)=>setTimeout(()=>pNote(f,150),i*80));
+  else if(t==='win')[523,659,784,1047].forEach((f,i)=>setTimeout(()=>pNote(f,200,.1),i*100));
+  else if(t==='lose')[330,294,262,220].forEach((f,i)=>setTimeout(()=>pNote(f,200,.08),i*80));
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+(function init(){
+  document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter') startGame();});
+  document.addEventListener('keydown',e=>{
+    const lt=e.key.toUpperCase();
+    if(/^[A-Z]$/.test(lt)&&document.getElementById('sg').classList.contains('on')&&!document.getElementById('oWin').classList.contains('on')&&!document.getElementById('oLose').classList.contains('on'))
+      guess(lt);
+  });
+  document.addEventListener('touchstart',()=>{if(aCtx&&aCtx.state==='suspended')aCtx.resume();},{passive:true});
+  // Check for returning player
+  const last=Object.keys(localStorage).find(k=>k.startsWith('wrm_')&&!k.startsWith('wrm_lb'));
+  if(last){const n=last.replace('wrm_','');
+    if(n){document.getElementById('inp').value=n;const b=document.getElementById('btnCon');
+      b.textContent='🎮 เล่นต่อในฐานะ '+n;b.style.display='block';
+      G.name=n;load();}}
+})();
+</script>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+let db=null;
+try{
+  firebase.initializeApp({
+    apiKey:"AIzaSyC7rkitRembsLuEYiYOtkZpRvVfOEsyvnI",
+    authDomain:"onepieceeastbluearc.firebaseapp.com",
+    projectId:"onepieceeastbluearc",
+    storageBucket:"onepieceeastbluearc.firebasestorage.app",
+    messagingSenderId:"138147216949",
+    appId:"1:138147216949:web:fb7eb5a476eb63cd177b7c"
+  });
+  db=firebase.firestore();
+}catch(e){}
+</script>
+</body>
+</html>
