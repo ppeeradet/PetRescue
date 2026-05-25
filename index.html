@@ -171,6 +171,10 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Kanit',sans-serif;
 .lb-sc{color:#2563eb;font-weight:900;}
 .lb-dt{color:#94a3b8;font-size:.72rem;margin-left:8px;}
 .lb-empty{color:#94a3b8;text-align:center;padding:40px;}
+.lb-status{text-align:center;font-size:.75rem;font-weight:700;padding:6px 14px;border-radius:20px;margin-bottom:12px;display:inline-block;}
+.lb-online{background:#dcfce7;color:#15803d;}
+.lb-local{background:#fef3c7;color:#92400e;}
+.lb-err{background:#fee2e2;color:#dc2626;border-radius:10px;padding:16px;display:block;font-size:.82rem;line-height:1.7;}
 
 /* ── SHARED ── */
 .bk{background:rgba(0,0,0,.06);border:1.5px solid rgba(0,0,0,.1);border-radius:10px;color:#475569;font-size:.85rem;font-family:'Kanit',sans-serif;padding:6px 12px;cursor:pointer;}
@@ -1543,53 +1547,74 @@ function useHint(type){
 }
 
 // ══════════════════════════════════════════════
-//  AUDIO — Robust for Android Chrome
+//  AUDIO — Android Chrome compatible
 // ══════════════════════════════════════════════
-// Pre-load voices on page load
-if('speechSynthesis' in window){
-  speechSynthesis.getVoices();
-  speechSynthesis.addEventListener('voiceschanged',()=>speechSynthesis.getVoices(),{once:true});
-}
+// สาเหตุ Android ไม่มีเสียง:
+// 1. cancel() แล้ว speak() ทันทีทำให้ stuck → ต้องมี delay 50ms
+// 2. กำหนด voice ผิดทำให้ fail → ไม่กำหนด voice บน Android
+// 3. speechSynthesis.paused ค้างอยู่ → ต้อง resume ก่อน
+
+const _isAndroid = /android/i.test(navigator.userAgent);
+
+// Resume ถ้า paused เมื่อ user กลับมาที่หน้า
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden && window.speechSynthesis && window.speechSynthesis.paused)
+    window.speechSynthesis.resume();
+});
 
 function _speak(text, rate=0.82){
-  if(!text||!('speechSynthesis' in window)) return;
+  if(!text || !window.speechSynthesis) return;
   try{
-    speechSynthesis.cancel();
-    const go=()=>{
-      const u=new SpeechSynthesisUtterance(text);
-      u.lang='en-US'; u.rate=rate; u.pitch=1.0; u.volume=1.0;
-      // Pick best English voice
-      const vs=speechSynthesis.getVoices();
-      const pick=vs.find(v=>v.lang==='en-US'&&v.localService)
-              ||vs.find(v=>v.lang==='en-US')
-              ||vs.find(v=>v.lang.startsWith('en')&&v.localService)
-              ||vs.find(v=>v.lang.startsWith('en'));
-      if(pick) u.voice=pick;
-      speechSynthesis.speak(u);
-    };
-    const vs=speechSynthesis.getVoices();
-    if(vs.length>0){ go(); }
-    else{
-      speechSynthesis.addEventListener('voiceschanged',go,{once:true});
-      setTimeout(go,350); // Android fallback
+    const syn = window.speechSynthesis;
+
+    // Step 1: หยุดสิ่งที่กำลังพูดอยู่
+    syn.cancel();
+
+    // Step 2: สร้าง utterance
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang  = 'en-US';
+    u.rate  = rate;
+    u.pitch = 1.0;
+    u.volume= 1.0;
+    u.onerror = e => console.warn('TTS error:', e.error);
+
+    // Step 3: กำหนด voice เฉพาะ non-Android
+    // Android ให้ใช้ default voice ของระบบ — การกำหนด voice เองทำให้ fail
+    if(!_isAndroid){
+      const vs = syn.getVoices();
+      const pick = vs.find(v=>v.lang==='en-US' && v.localService)
+                || vs.find(v=>v.lang==='en-US')
+                || vs.find(v=>v.lang.startsWith('en'));
+      if(pick) u.voice = pick;
     }
-  }catch(_){}
+
+    // Step 4: delay 50ms หลัง cancel (Android จำเป็น)
+    const delay = _isAndroid ? 80 : 0;
+    setTimeout(()=>{
+      // Resume ก่อนถ้า paused ค้างอยู่
+      if(syn.paused) syn.resume();
+      syn.speak(u);
+      // Android workaround: pause/resume kick ช่วยให้เสียงออก
+      if(_isAndroid){
+        setTimeout(()=>{
+          if(syn.speaking && !syn.paused){ syn.pause(); syn.resume(); }
+        }, 100);
+      }
+    }, delay);
+
+  }catch(e){ console.warn('TTS exception:', e); }
 }
 
-// อ่านคำศัพท์ (ช้ากว่า ชัดกว่า)
 function speakWord(word){
   if(!word) return;
   _speak(word, 0.65);
 }
 
-// อ่านประโยคโจทย์ (แทน ______ ด้วย "blank")
 function speakHint(){
   if(!G.word) return;
-  const text=G.word.h.replace('______','blank');
-  _speak(text, 0.88);
+  _speak(G.word.h.replace('______','blank'), 0.88);
 }
 
-// อ่านประโยคเฉลย (ใส่คำจริงแทน ______)
 function speakSentenceFull(){
   if(!G.word) return;
   const text=G.word.h.replace('______',G.word.w);
@@ -1670,36 +1695,81 @@ function renderCollection(){
 // ══════════════════════════════════════════════
 async function loadLB(){
   const el=document.getElementById('lbBody');
-  el.innerHTML='<div class="lb-empty">กำลังโหลด... ⏳</div>';
-  let entries=[];
-  try{const m=JSON.parse(localStorage.getItem('wrm_lb')||'{}');entries=Object.values(m);}catch(_){}
+  el.innerHTML='<div class="lb-empty">⏳ กำลังโหลด Ranking...</div>';
+  
+  // --- ลองดึงจาก Firebase ก่อน ---
   if(db){
     try{
-      const snap=await db.collection('hangman_lb').orderBy('score','desc').limit(20).get();
-      if(!snap.empty){entries=[];snap.forEach(d=>entries.push(d.data()));}
-    }catch(_){}
+      const snap=await db.collection('petrescue_lb').orderBy('score','desc').limit(30).get();
+      if(!snap.empty){
+        const entries=[];
+        snap.forEach(d=>entries.push(d.data()));
+        renderLBRows(entries,'🌐 ออนไลน์');
+        return;
+      }
+    }catch(err){
+      console.warn('Firestore read error:',err.code||err.message);
+      // แสดง error ให้เห็น
+      el.innerHTML=`<div class="lb-status lb-err">
+        ⚠️ เชื่อมต่อ Firebase ไม่ได้<br>
+        <small style="color:#666">${err.code||err.message||'ไม่ทราบสาเหตุ'}</small><br>
+        <small>ตรวจสอบ Firestore Rules ใน Firebase Console</small>
+        <br><button class="btn-sec" style="margin-top:10px;width:auto;padding:8px 20px;" onclick="loadLB()">🔄 ลองใหม่</button>
+      </div>`;
+      return;
+    }
   }
-  entries.sort((a,b)=>b.score-a.score);
-  if(!entries.length){el.innerHTML='<div class="lb-empty">🐾 ยังไม่มีข้อมูล Ranking</div>';return;}
+  
+  // --- Fallback: localStorage เฉพาะเครื่องนี้ ---
+  let local={};
+  try{local=JSON.parse(localStorage.getItem('wrm_lb')||'{}');}catch(_){}
+  const entries=Object.values(local).sort((a,b)=>b.score-a.score);
+  if(!entries.length){
+    el.innerHTML='<div class="lb-empty">🐾 ยังไม่มีข้อมูล Ranking</div>';
+  } else {
+    renderLBRows(entries,'💾 ข้อมูลเฉพาะเครื่องนี้');
+  }
+}
+
+function renderLBRows(entries, sourceLabel){
+  const el=document.getElementById('lbBody');
   const medals=['🥇','🥈','🥉'];
-  el.innerHTML=entries.map((e,i)=>`
+  const statusHtml=`<div class="lb-status ${sourceLabel.startsWith('🌐')?'lb-online':'lb-local'}">${sourceLabel} · ${entries.length} ผู้เล่น</div>`;
+  const rowsHtml=entries.map((e,i)=>`
     <div class="lb-row${e.name===G.name?' me':''}">
       <div class="lb-rank">${medals[i]||'#'+(i+1)}</div>
       <div class="lb-name">${e.name===G.name?'👤 ':''}${e.name}</div>
       <div class="lb-sc">⭐ ${e.score}</div>
       <div class="lb-dt">${e.date||''}</div>
     </div>`).join('');
+  el.innerHTML=statusHtml+rowsHtml;
 }
 
 async function saveScore(){
-  if(!G.name) return;
-  const entry={name:G.name,score:G.totScore,pets:G.pets.length,date:new Date().toLocaleDateString('th-TH'),ts:Date.now()};
-  try{const m=JSON.parse(localStorage.getItem('wrm_lb')||'{}');
+  if(!G.name||G.totScore===0) return;
+  const entry={
+    name:G.name,score:G.totScore,pets:G.pets.length,
+    date:new Date().toLocaleDateString('th-TH'),ts:Date.now()
+  };
+  // Save localStorage เสมอ
+  try{
+    const m=JSON.parse(localStorage.getItem('wrm_lb')||'{}');
     if(!m[G.name]||m[G.name].score<G.totScore) m[G.name]=entry;
-    localStorage.setItem('wrm_lb',JSON.stringify(m));}catch(_){}
-  if(db){try{const ref=db.collection('hangman_lb').doc(G.name);
-    const snap=await ref.get();
-    if(!snap.exists||snap.data().score<G.totScore) await ref.set(entry);}catch(_){}}
+    localStorage.setItem('wrm_lb',JSON.stringify(m));
+  }catch(_){}
+  // Save Firebase
+  if(db){
+    try{
+      const ref=db.collection('petrescue_lb').doc(G.name);
+      const snap=await ref.get();
+      if(!snap.exists||snap.data().score<G.totScore){
+        await ref.set(entry);
+        console.log('✅ Saved to Firebase');
+      }
+    }catch(err){
+      console.warn('Firebase save error:',err.code||err.message);
+    }
+  }
 }
 
 // ══════════════════════════════════════════════
