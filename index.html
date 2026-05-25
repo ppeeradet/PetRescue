@@ -219,6 +219,13 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Kanit',sans-serif;
 .audio-btn{background:none;border:none;cursor:pointer;font-size:1.15rem;padding:2px 4px;
   transition:transform .12s;vertical-align:middle;line-height:1;}
 .audio-btn:active{transform:scale(.82);}
+/* ── KEYBOARD LABELS ── */
+kbd{display:inline-block;background:rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.18);
+  border-radius:4px;padding:1px 5px;font-size:.58rem;font-family:monospace;
+  vertical-align:middle;line-height:1.4;color:inherit;margin-left:3px;}
+.recall-num{display:inline-block;background:rgba(37,99,235,.12);color:#1e40af;
+  border-radius:4px;width:18px;height:18px;font-size:.65rem;font-weight:900;
+  line-height:18px;text-align:center;margin-right:5px;vertical-align:middle;}
 
 /* ── WIN/LOSE SENTENCE BOX ── */
 .sent-box{background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:10px;
@@ -386,9 +393,9 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Kanit',sans-serif;
         <button class="audio-btn" onclick="speakHint()" title="ฟังประโยค" style="flex-shrink:0;font-size:1.2rem;padding-top:1px;">🔊</button>
       </div>
       <div class="hint-btns">
-        <button class="hint-btn" id="hFirst" style="border-color:#f59e0b;color:#f59e0b;" onclick="useHint('first')">🔤 ตัวแรก −5</button>
-        <button class="hint-btn" id="hVowel" style="border-color:#8b5cf6;color:#8b5cf6;" onclick="useHint('vowel')">🔡 สระ −10</button>
-        <button class="hint-btn" id="hThai"  style="border-color:#2563eb;color:#2563eb;"  onclick="useHint('thai')">🇹🇭 แปล −15</button>
+        <button class="hint-btn" id="hFirst" style="border-color:#f59e0b;color:#f59e0b;" onclick="useHint('first')">🔤 ตัวแรก −5 <kbd>1</kbd></button>
+        <button class="hint-btn" id="hVowel" style="border-color:#8b5cf6;color:#8b5cf6;" onclick="useHint('vowel')">🔡 สระ −10 <kbd>2</kbd></button>
+        <button class="hint-btn" id="hThai"  style="border-color:#2563eb;color:#2563eb;"  onclick="useHint('thai')">🇹🇭 แปล −15 <kbd>3</kbd></button>
       </div>
       <div class="thai-hint" id="thaiHint" style="display:none;"></div>
     </div>
@@ -424,8 +431,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Kanit',sans-serif;
       </div>
       <div class="recall-result" id="winRecallResult"></div>
       <div class="ov-score-line">ได้ <span id="winScore">0</span> คะแนน! 🌟</div>
-      <button class="btn-main" onclick="nextWord()">▶ คำต่อไป</button>
-      <button class="btn-sec" onclick="goToMap()">🗺️ กลับแผนที่</button>
+      <button class="btn-main" onclick="nextWord()">▶ คำต่อไป <kbd style="background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.4);color:#fff;">Enter</kbd></button>
+      <button class="btn-sec" onclick="goToMap()">🗺️ กลับแผนที่ <kbd>Esc</kbd></button>
     </div>
   </div>
 </div>
@@ -451,8 +458,8 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Kanit',sans-serif;
         </div>
       </div>
       <div class="review-notice">📚 บันทึกคำนี้ไว้ทบทวน — จะกลับมาใน session หน้า</div>
-      <button class="btn-main" style="background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 5px 0 #b91c1c;" onclick="nextWord()">🔄 ลองใหม่!</button>
-      <button class="btn-sec" onclick="goToMap()">🗺️ กลับแผนที่</button>
+      <button class="btn-main" style="background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 5px 0 #b91c1c;" onclick="nextWord()">🔄 ลองใหม่! <kbd style="background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.4);color:#fff;">Enter</kbd></button>
+      <button class="btn-sec" onclick="goToMap()">🗺️ กลับแผนที่ <kbd>Esc</kbd></button>
     </div>
   </div>
 </div>
@@ -1454,15 +1461,17 @@ function showRecallTest(){
   grid.innerHTML='';
   const resEl=document.getElementById('recallResult');
   resEl.style.display='none';resEl.className='recall-result';
-  choices.forEach(ch=>{
+  choices.forEach((ch,idx)=>{
     const b=document.createElement('button');
-    b.className='recall-btn';b.textContent=ch;
+    b.className='recall-btn';
+    b.dataset.idx=idx;
+    b.innerHTML=`<span class="recall-num">${idx+1}</span>${ch}`;
     b.onclick=()=>{
       grid.querySelectorAll('.recall-btn').forEach(x=>x.disabled=true);
       const ok=ch===G.word.t;
       b.classList.add(ok?'right':'wrong');
       if(!ok){
-        grid.querySelectorAll('.recall-btn').forEach(x=>{if(x.textContent===G.word.t) x.classList.add('right');});
+        grid.querySelectorAll('.recall-btn').forEach(x=>{if(x.textContent.slice(1)===G.word.t) x.classList.add('right');});
         addToReview(G.word,G.level);
       }
       G.recallPassed=ok;
@@ -1872,10 +1881,60 @@ function playSnd(t){
 // ══════════════════════════════════════════════
 (function init(){
   document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter') startGame();});
+
+  // ── KEYBOARD SHORTCUTS ──
   document.addEventListener('keydown',e=>{
-    const lt=e.key.toUpperCase();
-    if(/^[A-Z]$/.test(lt)&&document.getElementById('sg').classList.contains('on')&&!document.getElementById('oWin').classList.contains('on')&&!document.getElementById('oLose').classList.contains('on'))
-      guess(lt);
+    // ไม่ทำงานถ้ากำลังพิมพ์ใน input
+    if(e.target.tagName==='INPUT') return;
+
+    const key=e.key;
+    const lt=key.toUpperCase();
+    const sgOn =document.getElementById('sg').classList.contains('on');
+    const oWin =document.getElementById('oWin').classList.contains('on');
+    const oLose=document.getElementById('oLose').classList.contains('on');
+    const oRec =document.getElementById('oRecall').classList.contains('on');
+    const oLvD =document.getElementById('oLvDone').classList.contains('on');
+
+    // ── Recall: กด 1-4 เลือกคำตอบ ──
+    if(oRec){
+      if(/^[1-4]$/.test(key)){
+        const btns=[...document.querySelectorAll('.recall-btn:not(:disabled)')];
+        const b=btns[parseInt(key)-1];
+        if(b){e.preventDefault();b.click();}
+      }
+      return;
+    }
+
+    // ── Win / Lose overlay: Enter ต่อไป, Esc กลับแผนที่ ──
+    if(oWin||oLose){
+      if(key==='Enter'||key===' '){e.preventDefault();nextWord();}
+      if(key==='Escape'){e.preventDefault();goToMap();}
+      return;
+    }
+
+    // ── Level Complete: Enter เล่นต่อ, Esc กลับแผนที่ ──
+    if(oLvD){
+      if(key==='Enter'||key===' '){e.preventDefault();continueLevel();}
+      if(key==='Escape'){e.preventDefault();goToMap();}
+      return;
+    }
+
+    // ── Game screen (ไม่มี overlay) ──
+    if(sgOn){
+      if(/^[A-Z]$/.test(lt)){           // A-Z → ทายตัวอักษร
+        guess(lt);
+      } else if(key===' '){             // Space → อ่านประโยคออกเสียง
+        e.preventDefault();speakHint();
+      } else if(key==='1'){             // 1 → hint ตัวแรก
+        e.preventDefault();useHint('first');
+      } else if(key==='2'){             // 2 → hint สระ
+        e.preventDefault();useHint('vowel');
+      } else if(key==='3'){             // 3 → hint คำแปล
+        e.preventDefault();useHint('thai');
+      } else if(key==='Escape'){        // Esc → กลับแผนที่
+        e.preventDefault();goToMap();
+      }
+    }
   });
   document.addEventListener('touchstart',()=>{if(aCtx&&aCtx.state==='suspended')aCtx.resume();},{passive:true});
   // Check for returning player
