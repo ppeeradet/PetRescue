@@ -326,6 +326,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Kanit',sans-serif;
     <button class="bk" onclick="switchPlayer()">🔄</button>
     <div class="mhdr-title">🗺️ แผนที่การผจญภัย</div>
     <div class="mhdr-score" id="mpScore">⭐ 0</div>
+    <span id="syncStatus" style="font-size:1.1rem;cursor:default;opacity:.8;" title="สถานะ sync"></span>
   </div>
   <div class="streak-bar">
     <div class="streak-fire">🔥</div>
@@ -1128,24 +1129,75 @@ const G={
 };
 
 // ══════════════════════════════════════════════
-//  SAVE / LOAD
+//  SAVE / LOAD  (cross-device sync via Firebase)
 // ══════════════════════════════════════════════
-function save(){
-  try{localStorage.setItem('wrm_'+G.name,JSON.stringify({
-    totScore:G.totScore,pets:G.pets,levelWins:G.levelWins,usedWords:G.usedWords,
-    reviewDeck:G.reviewDeck,streak:G.streak,lastPlayDate:G.lastPlayDate,todayWords:G.todayWords
-  }));}catch(_){}
+function setSyncStatus(s){
+  const el=document.getElementById('syncStatus');
+  if(!el) return;
+  const map={syncing:'🔄',ok:'☁️✅',err:'⚠️',local:'💾'};
+  const tip={syncing:'กำลัง sync...',ok:'sync ข้ามเครื่องแล้ว',err:'ไม่ได้เชื่อม Firebase',local:'บันทึกเฉพาะเครื่องนี้'};
+  el.textContent=map[s]||''; el.title=tip[s]||'';
 }
-function load(){
-  try{
-    const d=JSON.parse(localStorage.getItem('wrm_'+G.name)||'null');
-    if(d){
-      G.totScore=d.totScore||0;G.pets=d.pets||[];G.levelWins=d.levelWins||[0,0,0,0,0];
-      G.usedWords=d.usedWords||{1:[],2:[],3:[],4:[],5:[]};
-      G.reviewDeck=d.reviewDeck||{1:[],2:[],3:[],4:[],5:[]};
-      G.streak=d.streak||0;G.lastPlayDate=d.lastPlayDate||'';G.todayWords=d.todayWords||0;
+
+function _playerPayload(){
+  return {
+    name:G.name, totScore:G.totScore, pets:G.pets,
+    levelWins:G.levelWins, usedWords:G.usedWords,
+    reviewDeck:G.reviewDeck, streak:G.streak,
+    lastPlayDate:G.lastPlayDate, todayWords:G.todayWords,
+    ts:Date.now()
+  };
+}
+
+function _applyPlayerData(d){
+  G.totScore    = d.totScore||0;
+  G.pets        = d.pets||[];
+  G.levelWins   = d.levelWins||[0,0,0,0,0];
+  G.usedWords   = d.usedWords||{1:[],2:[],3:[],4:[],5:[]};
+  G.reviewDeck  = d.reviewDeck||{1:[],2:[],3:[],4:[],5:[]};
+  G.streak      = d.streak||0;
+  G.lastPlayDate= d.lastPlayDate||'';
+  G.todayWords  = d.todayWords||0;
+}
+
+async function save(){
+  if(!G.name) return;
+  const data=_playerPayload();
+  // 1. localStorage (ทันที)
+  try{ localStorage.setItem('wrm_'+G.name, JSON.stringify(data)); }catch(_){}
+  // 2. Firebase (async, ไม่บล็อก UI)
+  if(db){
+    setSyncStatus('syncing');
+    try{
+      await db.collection('petrescue_players').doc(G.name).set(data);
+      setSyncStatus('ok');
+    }catch(err){
+      setSyncStatus('err');
+      console.warn('Firebase save error:',err.code||err.message);
     }
-  }catch(_){}
+  } else {
+    setSyncStatus('local');
+  }
+}
+
+async function load(){
+  if(!G.name) return;
+  let fbData=null, lsData=null;
+  // โหลด Firebase
+  if(db){
+    try{
+      const snap=await db.collection('petrescue_players').doc(G.name).get();
+      if(snap.exists) fbData=snap.data();
+    }catch(err){
+      console.warn('Firebase load error:',err.code||err.message);
+    }
+  }
+  // โหลด localStorage
+  try{ lsData=JSON.parse(localStorage.getItem('wrm_'+G.name)||'null'); }catch(_){}
+  // เลือกข้อมูลที่ใหม่กว่า
+  const use = (fbData&&lsData) ? ((fbData.ts||0)>=(lsData.ts||0)?fbData:lsData)
+            : (fbData||lsData);
+  if(use) _applyPlayerData(use);
 }
 
 // ══════════════════════════════════════════════
@@ -1163,17 +1215,26 @@ function showLB(){loadLB();show('slb');}
 function showCollection(){renderCollection();show('scol');}
 function closeCollection(){show(G.name?'sm':'sw');}
 
-function startGame(){
+async function startGame(){
   const n=document.getElementById('inp').value.trim();
-  if(!n)return document.getElementById('inp').focus();
-  if(n!==G.name){
-    G.name=n;G.totScore=0;G.pets=[];G.levelWins=[0,0,0,0,0];G.usedWords={1:[],2:[],3:[],4:[],5:[]};
-  }
-  load();updateStreak();
-  renderMap();show('sm');
+  if(!n) return document.getElementById('inp').focus();
+  // Reset state ก่อน แล้วให้ Firebase override ถ้ามีข้อมูล
+  G.name=n;
+  G.totScore=0;G.pets=[];G.levelWins=[0,0,0,0,0];
+  G.usedWords={1:[],2:[],3:[],4:[],5:[]};
+  G.reviewDeck={1:[],2:[],3:[],4:[],5:[]};
+  G.streak=0;G.lastPlayDate='';G.todayWords=0;
+  // โหลดข้อมูล (Firebase จะ override ถ้าเคยเล่นบนเครื่องอื่น)
+  await load();
+  updateStreak();
   document.getElementById('btnCon').style.display='none';
+  renderMap();show('sm');
 }
-function continueGame(){load();updateStreak();renderMap();show('sm');}
+async function continueGame(){
+  await load();
+  updateStreak();
+  renderMap();show('sm');
+}
 function switchPlayer(){
   save();G.name='';
   document.getElementById('inp').value='';
