@@ -1126,9 +1126,9 @@ const G={
   revealed:[],guessed:new Set(),wrong:0,
   chScore:0,totScore:0,
   pets:[],levelWins:[0,0,0,0,0],
-  usedWords:{1:[],2:[],3:[],4:[],5:[]},
+  usedWords:{'1':[],'2':[],'3':[],'4':[],'5':[]},
   sessionQueue:[],sessionIdx:0,sessionWins:0,
-  reviewDeck:{1:[],2:[],3:[],4:[],5:[]},
+  reviewDeck:{'1':[],'2':[],'3':[],'4':[],'5':[]},
   streak:0,lastPlayDate:'',todayWords:0,
   recallPassed:false,
   hintCost:0,
@@ -1147,21 +1147,31 @@ function setSyncStatus(s){
 }
 
 function _playerPayload(){
+  // ใช้ string keys เพื่อความเข้ากันได้กับ Firestore
+  const strKeys=obj=>Object.fromEntries([1,2,3,4,5].map(k=>[String(k),(obj[k]||obj[String(k)]||[])]));
   return {
     name:G.name, totScore:G.totScore, pets:G.pets,
-    levelWins:G.levelWins, usedWords:G.usedWords,
-    reviewDeck:G.reviewDeck, streak:G.streak,
-    lastPlayDate:G.lastPlayDate, todayWords:G.todayWords,
+    levelWins:G.levelWins,
+    usedWords:strKeys(G.usedWords),
+    reviewDeck:strKeys(G.reviewDeck),
+    streak:G.streak, lastPlayDate:G.lastPlayDate, todayWords:G.todayWords,
     ts:Date.now()
   };
 }
 
 function _applyPlayerData(d){
+  // รองรับทั้ง string keys ('1','2',...) และ numeric keys (1,2,...)
+  const norm=obj=>{
+    const r={'1':[],'2':[],'3':[],'4':[],'5':[]};
+    if(!obj) return r;
+    [1,2,3,4,5].forEach(k=>{ r[String(k)]=obj[String(k)]||obj[k]||[]; });
+    return r;
+  };
   G.totScore    = d.totScore||0;
   G.pets        = d.pets||[];
   G.levelWins   = d.levelWins||[0,0,0,0,0];
-  G.usedWords   = d.usedWords||{1:[],2:[],3:[],4:[],5:[]};
-  G.reviewDeck  = d.reviewDeck||{1:[],2:[],3:[],4:[],5:[]};
+  G.usedWords   = norm(d.usedWords);
+  G.reviewDeck  = norm(d.reviewDeck);
   G.streak      = d.streak||0;
   G.lastPlayDate= d.lastPlayDate||'';
   G.todayWords  = d.todayWords||0;
@@ -1225,15 +1235,24 @@ function closeCollection(){show(G.name?'sm':'sw');}
 async function startGame(){
   const n=document.getElementById('inp').value.trim();
   if(!n) return document.getElementById('inp').focus();
-  // Reset state ก่อน แล้วให้ Firebase override ถ้ามีข้อมูล
+
+  // แสดง loading ระหว่างดึงข้อมูล
+  const btn=document.querySelector('#sw .btn-main');
+  btn.textContent='⏳ กำลังโหลด...'; btn.disabled=true;
+
+  // ✅ Reset เฉพาะถ้าเปลี่ยนชื่อ (ชื่อเดิม = อย่า reset)
+  if(n !== G.name){
+    G.totScore=0;G.pets=[];G.levelWins=[0,0,0,0,0];
+    G.usedWords={'1':[],'2':[],'3':[],'4':[],'5':[]};
+    G.reviewDeck={'1':[],'2':[],'3':[],'4':[],'5':[]};
+    G.streak=0;G.lastPlayDate='';G.todayWords=0;
+  }
   G.name=n;
-  G.totScore=0;G.pets=[];G.levelWins=[0,0,0,0,0];
-  G.usedWords={1:[],2:[],3:[],4:[],5:[]};
-  G.reviewDeck={1:[],2:[],3:[],4:[],5:[]};
-  G.streak=0;G.lastPlayDate='';G.todayWords=0;
-  // โหลดข้อมูล (Firebase จะ override ถ้าเคยเล่นบนเครื่องอื่น)
-  await load();
+
+  await load();    // Firebase ก่อน → localStorage fallback
   updateStreak();
+
+  btn.textContent='🐾 เริ่มภารกิจ!'; btn.disabled=false;
   document.getElementById('btnCon').style.display='none';
   renderMap();show('sm');
 }
@@ -1937,12 +1956,14 @@ function playSnd(t){
     }
   });
   document.addEventListener('touchstart',()=>{if(aCtx&&aCtx.state==='suspended')aCtx.resume();},{passive:true});
-  // Check for returning player
+  // ตรวจสอบผู้เล่นที่เคยเล่น — แค่ตั้งชื่อและแสดงปุ่ม (ไม่ load ที่นี่)
   const last=Object.keys(localStorage).find(k=>k.startsWith('wrm_')&&!k.startsWith('wrm_lb'));
   if(last){const n=last.replace('wrm_','');
     if(n){document.getElementById('inp').value=n;const b=document.getElementById('btnCon');
       b.textContent='🎮 เล่นต่อในฐานะ '+n;b.style.display='block';
-      G.name=n;load();}}
+      G.name=n; // ตั้งชื่อไว้ก่อน — load() จะเกิดตอนคลิกปุ่มเท่านั้น
+    }
+  }
 })();
 </script>
 
