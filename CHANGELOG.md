@@ -9,8 +9,8 @@
 - เพิ่มเอกสารมาตรฐานของ repository: `README.md`, `CHANGELOG.md` และ `version.json`
 - ระบุ `index.html` เป็น canonical production file
 - บันทึกสถานะไฟล์ HTML legacy จากการเปรียบเทียบ SHA-256
+- เพิ่ม `LEGACY_REVIEW.md` พร้อมผลตรวจเชิงโค้ดและข้อเสนอแนะ โดยยังไม่ย้ายหรือลบไฟล์
 
 ### Changed
 
 - ไม่มีการเปลี่ยน gameplay หรือ `index.html`
-
