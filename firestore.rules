@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /petrescue_lb/{player} {
+      allow read: if true;
+      allow create: if validLeaderboard(player);
+      allow update: if validLeaderboard(player)
+                    && resource.data.name == player
+                    && request.resource.data.score >= resource.data.score;
+      allow delete: if false;
+    }
+
+    match /petrescue_players/{player} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasAll(
+                               ['name', 'totScore', 'pets', 'levelWins', 'usedWords',
+                                'reviewDeck', 'streak', 'lastPlayDate', 'todayWords', 'ts'])
+                            && request.resource.data.name == player
+                            && request.resource.data.name is string
+                            && request.resource.data.name.size() >= 1
+                            && request.resource.data.name.size() <= 30
+                            && request.resource.data.totScore is number
+                            && request.resource.data.totScore >= 0
+                            && request.resource.data.pets is list
+                            && request.resource.data.levelWins is list
+                            && request.resource.data.usedWords is map
+                            && request.resource.data.reviewDeck is map
+                            && request.resource.data.streak is number
+                            && request.resource.data.todayWords is number
+                            && request.resource.data.ts is number;
+      allow delete: if false;
+    }
+
+    function validLeaderboard(player) {
+      return request.resource.data.keys().hasAll(['name', 'score', 'pets', 'date', 'ts'])
+             && request.resource.data.name == player
+             && request.resource.data.name is string
+             && request.resource.data.name.size() >= 1
+             && request.resource.data.name.size() <= 30
+             && request.resource.data.score is number
+             && request.resource.data.score >= 0
+             && request.resource.data.pets is number
+             && request.resource.data.pets >= 0
+             && request.resource.data.ts is number;
+    }
+  }
+}
